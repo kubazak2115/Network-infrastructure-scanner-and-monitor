@@ -1,0 +1,11 @@
+services:
+  monitor:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - TARGET_HOST=10.0.1.99
+      - TARGET_USER=user
+      - TARGET_PASS=user
+    volumes:
+      - ./metrics.json:/app/metrics.json
