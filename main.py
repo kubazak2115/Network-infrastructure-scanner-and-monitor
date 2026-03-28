@@ -1,74 +1,30 @@
-from netmiko import ConnectHandler
+import threading
 import json
-from datetime import datetime
 
-device = {
-    'device_type': 'linux',
-    'host': '10.0.1.99',
-    'username': 'user',
-    'password': 'user'
-}
+from config import DEVICE, API_HOST, API_PORT
+from collector.ssh import collect_raw
+from collector.parser import build_result
+from api.app import app, set_metrics
 
-connection = ConnectHandler(**device)
+def main():
+    print(f"Łączę z {DEVICE['host']}...")
+    raw    = collect_raw(DEVICE)
+    result = build_result(DEVICE['host'], raw)
 
-# data collection using linux commands
-raw_ifconfig  = connection.send_command('ifconfig')
-raw_cpu       = connection.send_command('cat /proc/stat | grep "cpu" | head -n 1')
-raw_ram       = connection.send_command('free -m')
-raw_hostname  = connection.send_command('hostname')
+    set_metrics(result)
 
-connection.disconnect()
+    with open('metrics.json', 'w') as f:
+        json.dump(result, f, indent=4)
 
-# parsing the interfaces data
-interfaces = {}
-current_interface = None
-lines = raw_ifconfig.split('\n')
+    print(json.dumps(result, indent=4))
+    print(f"\nAPI działa na http://localhost:{API_PORT}/metrics")
 
-for line in lines:
-    if line and not line.startswith(' '):
-        current_interface = line.split()[0]
-        interfaces[current_interface] = {}
-    elif current_interface:
-        if 'inet ' in line:
-            interfaces[current_interface]['ip_address'] = line.split()[1]
-        elif 'ether ' in line:
-            interfaces[current_interface]['mac_address'] = line.split()[1]
+    threading.Thread(
+        target=lambda: app.run(host=API_HOST, port=API_PORT),
+        daemon=True
+    ).start()
 
+    input("Wciśnij Enter żeby zatrzymać...\n")
 
-#parsing the cpu data
-cpu_values = raw_cpu.split()
-user   = int(cpu_values[1])
-nice   = int(cpu_values[2])
-system = int(cpu_values[3])
-idle   = int(cpu_values[4])
-
-total = user + nice + system + idle
-cpu_used = round((total - idle) / total * 100, 1)
-
-#parsing the ram data
-ram = {}
-lines = raw_ram.split('\n')
-
-for line in lines:
-    if line.startswith('Mem:'):
-        parts = line.split()
-        ram['total'] = int(parts[1])
-        ram['used'] = int(parts[2])
-        ram['free'] = int(parts[3])
-        ram['used_pct']  = round(ram['used'] / ram['total'] * 100, 1)
-        break
-
-#results
-results = {
-    'host': device['host'],
-    'hostname': raw_hostname,
-    'timestamp':  datetime.utcnow().isoformat() + 'Z',
-    'cpu_used_pct': cpu_used,
-    'ram': ram,
-    'interfaces': interfaces
-}
-
-print(json.dumps(results, indent=4))
-
-with open('metrics.json', 'w') as f:
-    json.dump(results, f, indent=4)
+if __name__ == '__main__':
+    main()
