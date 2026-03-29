@@ -7,9 +7,20 @@
 #include <cstring>
 #include <sstream>
 
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#pragma comment(lib, "ws2_32.lib")
+#ifdef _WIN32
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+    #pragma comment(lib, "ws2_32.lib")
+    #define CLOSE_SOCKET closesocket
+#else
+    #include <sys/socket.h>
+    #include <netinet/in.h>
+    #include <arpa/inet.h>
+    #include <unistd.h>
+    #define CLOSE_SOCKET close
+    #define SOCKET int
+    #define INVALID_SOCKET -1
+#endif
 
 std::mutex output_mutex;
 
@@ -23,9 +34,15 @@ bool check_port(const std::string& ip, int port) {
     SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock == INVALID_SOCKET) return false;
 
+#ifdef _WIN32
     DWORD timeout = 1000; // 1 second
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
     setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
+#else
+    struct timeval tv = {1, 0};
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+#endif
 
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
@@ -33,7 +50,7 @@ bool check_port(const std::string& ip, int port) {
     inet_pton(AF_INET, ip.c_str(), &addr.sin_addr);
 
     bool open = connect(sock, (struct sockaddr*)&addr, sizeof(addr)) == 0;
-    closesocket(sock);
+    CLOSE_SOCKET(sock);
     return open;
 }
 
@@ -93,8 +110,10 @@ void print_json(const std::vector<HostResult>& results) {
 }
 
 int main(int argc, char* argv[]){
+#ifdef _WIN32
     WSADATA wsa;
     WSAStartup(MAKEWORD(2, 2), &wsa);
+#endif
 
     std::string subnet = "10.0.1.";
     int start = 1, end = 254;
@@ -120,7 +139,9 @@ int main(int argc, char* argv[]){
     }
 
     print_json(results);
-    
+
+#ifdef _WIN32
     WSACleanup();
+#endif
     return 0;
 }
