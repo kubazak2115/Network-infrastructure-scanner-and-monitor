@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from collector.ssh import run_scanner
 import platform
+from config import SCAN_SUBNET, SCAN_START, SCAN_END
 
 app = Flask(__name__)
 _metrics = {}
@@ -28,9 +29,9 @@ def health_check():
 
 @app.route('/scan', methods=['GET'])
 def scan():
-    subnet = request.args.get('subnet', '10.0.1.')
-    start = int(request.args.get('start', '90'))
-    end   = int(request.args.get('end', '110'))
+    subnet = request.args.get('subnet', SCAN_SUBNET)
+    start  = int(request.args.get('start', SCAN_START))
+    end    = int(request.args.get('end', SCAN_END))
     
     results = run_scanner(subnet, start, end)
     return jsonify({
