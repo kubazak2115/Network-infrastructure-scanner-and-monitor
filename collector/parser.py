@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 def parse_interfaces(raw_ifconfig: str) -> dict:
     interfaces = {}
@@ -48,7 +48,7 @@ def build_result(host: str, raw: dict) -> dict:
     results = {
         'host':         host,
         'hostname':     raw['hostname'].strip(),
-        'timestamp':    datetime.utcnow().isoformat() + 'Z',
+        'timestamp':    datetime.now(timezone.utc).isoformat() + 'Z',
         'cpu_used_pct': parse_cpu(raw['cpu']),
         'ram':          parse_ram(raw['ram']),
         'interfaces':   parse_interfaces(raw['ifconfig']),
