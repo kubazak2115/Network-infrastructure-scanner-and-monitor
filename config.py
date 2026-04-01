@@ -14,9 +14,11 @@ DEVICES = [
         'password': os.getenv('TARGET_PASS_2', 'password'),
     },
 ]
+
 API_HOST = '0.0.0.0'
 API_PORT = 5000
-INTERVAL_SECONDS = 20
+
+INTERVAL_SECONDS = 30
 
 # default scanner setting - can be overridden by env vars
 SCAN_SUBNET = os.getenv('SCAN_SUBNET', '192.168.1.')
