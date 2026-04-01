@@ -1,15 +1,22 @@
 from flask import Flask, jsonify, request, render_template, Blueprint
 from collector.ssh import run_scanner
 from config import SCAN_SUBNET, SCAN_START, SCAN_END
+import threading
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
-_metrics = {}
 
-### functioon for collector to set metrics
+_metrics = {}
+_metrics_lock = threading.Lock()
+
+### functions for collector to set metrics
 
 def set_metrics(host: str, data: dict):
-    global _metrics
-    _metrics[host] = data
+    with _metrics_lock:
+        _metrics[host] = data
+
+def get_metrics_snapshot() -> dict:
+    with _metrics_lock:
+        return dict(_metrics)
 
 ### frontend route
 
@@ -23,19 +30,21 @@ api = Blueprint('api', __name__, url_prefix='/api')
 
 @api.route('/metrics', methods=['GET'])
 def get_metrics():
-    return jsonify(_metrics)
+    return jsonify(get_metrics_snapshot())
 
 @api.route('/metrics/<host>', methods=['GET'])
 def get_metrics_host(host: str):
-    if host not in _metrics:
+    snapshot = get_metrics_snapshot()
+    if host not in snapshot:
         return jsonify({'error': 'Host not found'}), 404
-    return jsonify(_metrics[host])
+    return jsonify(snapshot[host])
 
 @api.route('/health', methods=['GET'])
 def health_check():
+    snapshot = get_metrics_snapshot()
     return jsonify({
         'status': 'ok',
-        'hosts monitored': list(_metrics.keys())
+        'hosts_monitored': list(snapshot.keys())
     })
 
 @api.route('/scan', methods=['GET'])
