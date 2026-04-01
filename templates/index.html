@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Network Monitor</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <div class="topbar">
+    <h1>Network Monitor</h1>
+    <div class="topbar-right">
+      <span id="refresh-info" class="muted">loading...</span>
+      <span id="hosts-badge" class="badge">0 hosts</span>
+    </div>
+  </div>
+
+  <p class="section-label">Hosts</p>
+  <div id="hosts-container" class="cards">
+    <div class="empty">Connecting...</div>
+  </div>
+
+  <div class="card scan-card">
+    <div class="scan-header">
+      <p class="section-label">Network scan</p>
+      <button id="scan-btn" onclick="runScan()">Run scan</button>
+    </div>
+    <div id="scan-results">
+      <div class="empty">Press "Run scan" to discover hosts.</div>
+    </div>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
