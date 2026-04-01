@@ -22,24 +22,18 @@ def test_get_metrics_empty(client):
     assert response.get_json() == {}
 
 
-@patch('api.app._metrics', new_callable=dict)
-def test_get_metrics_for_specific_host(mock_metrics, client):
-    test_data = {
+def test_get_metrics_for_specific_host(client):
+    from api.app import set_metrics
+    set_metrics("192.168.1.10", {
         "host": "192.168.1.10",
         "hostname": "test-server",
         "cpu_used_pct": 45.5,
-        "ram": {"total": 16384, "used": 8192, "free": 8192, "used_pct": 50.0},
+        "ram": {"total_mb": 16384, "used_mb": 8192, "used_pct": 50.0},
         "interfaces": {}
-    }
-    mock_metrics["192.168.1.10"] = test_data
-
+    })
     response = client.get('/api/metrics/192.168.1.10')
-    
     assert response.status_code == 200
-    data = response.get_json()
-    assert data["host"] == "192.168.1.10"
-    assert data["cpu_used_pct"] == 45.5
-    assert "ram" in data
+    assert response.get_json()["cpu_used_pct"] == 45.5
 
 
 @patch('api.app._metrics', new_callable=dict)

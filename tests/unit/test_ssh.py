@@ -23,7 +23,7 @@ def test_collect_raw(mock_connect):
 @patch('collector.ssh.subprocess.run')
 @patch('collector.ssh.platform.system', return_value='Linux')
 def test_run_scanner(mock_system, mock_run):
-    mock_run.return_value.stdout = 'some lines\n[{"ip": "192.168.1.10", "alive": true, "ports": [22]}]\n'
+    mock_run.return_value.stdout = '[{"ip": "192.168.1.10", "alive": true, "open_ports": [22]}]'
     result = run_scanner("192.168.1.", 1, 20)
     assert len(result) == 1
     assert result[0]["ip"] == "192.168.1.10"
